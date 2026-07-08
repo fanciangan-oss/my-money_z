@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#faf7ef">
+<title>My Money — Catatan Keuangan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=DM+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#faf7ef;
+    --card:#ffffff;
+    --ink:#161616;
+    --muted:#8a8578;
+    --line:#e7e1d2;
+    --lime:#cdea3f;
+    --lime-ink:#3a4405;
+    --blue:#5b8dff;
+    --blue-bg:#eaf0ff;
+    --coral:#ff6b5c;
+    --coral-bg:#ffece9;
+    --tabungan:#a06bff;
+    --tabungan-bg:#f3ecff;
+    --radius:18px;
+    --radius-sm:12px;
+    --shadow-off:4px;
+    font-size:16px;
+  }
+  [data-theme="dark"]{
+    --paper:#141414;
+    --card:#1e1e1c;
+    --ink:#f3f1ea;
+    --muted:#9a9585;
+    --line:#33322c;
+    --blue-bg:#1c2740;
+    --coral-bg:#3a1f1c;
+    --tabungan-bg:#291c3d;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:'DM Sans',-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;transition:background .2s,color .2s;
+    overflow-x:hidden;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;letter-spacing:-.01em;}
+
+  .container{max-width:480px;margin:0 auto;padding:18px 16px 90px;}
+
+  /* ===== Header ===== */
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .header .brand{display:flex;align-items:center;gap:10px;}
+  .header .brand .mark{
+    width:38px;height:38px;background:var(--ink);color:var(--paper);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;
+    transform:rotate(-4deg);
+  }
+  .header h1{font-size:1.2rem;font-weight:700;margin:0;}
+  .header .sub{font-size:.7rem;color:var(--muted);font-weight:500;margin-top:1px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.4px;}
+  .theme-toggle{
+    width:38px;height:38px;border-radius:50%;background:var(--card);
+    border:2px solid var(--ink);cursor:pointer;font-size:1rem;flex-shrink:0;
+  }
+
+  /* ===== Vibe strip ===== */
+  .vibe-strip{
+    display:flex;align-items:center;gap:10px;background:var(--lime);color:var(--lime-ink);
+    border:2px solid var(--ink);border-radius:999px;padding:9px 16px;margin-bottom:16px;
+    font-size:.78rem;font-weight:700;box-shadow:var(--shadow-off) var(--shadow-off) 0 var(--ink);
+  }
+
+  /* ===== Receipt-style balance card ===== */
+  .receipt{
+    background:var(--card);border:2px solid var(--ink);border-radius:var(--radius) var(--radius) 0 0;
+    padding:22px 22px 18px;position:relative;
+    box-shadow:6px 6px 0 var(--ink);margin-bottom:2px;
+  }
+  .receipt .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+  .receipt .label{font-family:'IBM Plex Mono',monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;}
+  .receipt .eye-toggle{background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);}
+  .receipt .amount{font-family:'Space Grotesk',sans-serif;font-size:2.4rem;font-weight:700;margin:4px 0 16px;letter-spacing:-.02em;}
+  .receipt .subrow{display:flex;gap:0;border-top:1.5px dashed var(--line);padding-top:14px;}
+  .receipt .subrow .item{flex:1;}
+  .receipt .subrow .item:first-child{border-right:1.5px dashed var(--line);padding-right:14px;}
+  .receipt .subrow .item:last-child{padding-left:14px;}
+  .receipt .subrow .label2{font-family:'IBM Plex Mono',monospace;font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:3px;}
+  .receipt .subrow .val{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1rem;}
+  .receipt .subrow .val.income{color:#188a5c;}
+  .receipt .subrow .val.expense{color:var(--coral);}
+  [data-theme="dark"] .receipt .subrow .val.income{color:#4fd897;}
+
+  /* torn/zigzag edge under receipt */
+  .receipt-tear{
+    height:14px;margin-bottom:18px;
+    background:
+      linear-gradient(-45deg, var(--paper) 8px, transparent 0) 0 6px,
+      linear-gradient(45deg, var(--paper) 8px, var(--ink) 0) 0 6px;
+    background-size:16px 16px;background-repeat:repeat-x;
+  }
+
+  /* ===== Accounts ===== */
+  .accounts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+  @media (max-width:700px){.accounts{grid-template-columns:1fr 1fr;}}
+  .acc-card{
+    background:var(--card);border-radius:14px;padding:14px 15px;border:2px solid var(--ink);
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .acc-card .top{display:flex;align-items:center;gap:7px;margin-bottom:8px;}
+  .acc-card .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--ink);}
+  .acc-card .name{font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
+  .acc-card .val{font-family:'IBM Plex Mono',monospace;font-size:1.02rem;font-weight:700;}
+  .dot.cash{background:var(--lime);} .dot.atm{background:var(--blue);} .dot.tabungan{background:var(--tabungan);}
+
+  /* Quick amount chips */
+  .quick-amounts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;}
+  .chip{
+    font-family:'IBM Plex Mono',monospace;background:var(--card);border:1.5px solid var(--ink);
+    border-radius:999px;padding:6px 13px;font-size:.76rem;font-weight:600;color:var(--ink);cursor:pointer;
+    transition:all .12s;
+  }
+  .chip:hover, .chip.active{background:var(--ink);color:var(--paper);}
+
+  .content-wrapper{display:flex;flex-direction:column;gap:18px;}
+
+  /* ===== Tabs ===== */
+  .tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px;}
+  .tab-btn{
+    flex-shrink:0;padding:9px 15px;border:2px solid var(--ink);background:var(--card);border-radius:999px;
+    font-size:.76rem;font-weight:700;color:var(--ink);cursor:pointer;transition:all .12s;white-space:nowrap;
+    font-family:'DM Sans',sans-serif;
+  }
+  .tab-btn.active{background:var(--ink);color:var(--paper);}
+
+  .tab-content{
+    display:none;background:var(--card);border:2px solid var(--ink);border-radius:var(--radius);
+    padding:22px;animation:fadeUp .25s ease;box-shadow:5px 5px 0 var(--ink);
+  }
+  .tab-content.active{display:block;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  .form-group{margin-bottom:16px;}
+  .form-group label{display:block;font-family:'IBM Plex Mono',monospace;font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;}
+  .input-field{
+    width:100%;padding:11px 13px;border:2px solid var(--line);background:var(--paper);color:var(--ink);
+    font-family:'DM Sans',sans-serif;font-size:.92rem;border-radius:var(--radius-sm);
+  }
+  .input-field:focus{outline:none;border-color:var(--ink);}
+
+  .radio-group{display:flex;background:var(--paper);border:2px solid var(--ink);border-radius:12px;padding:3px;gap:3px;}
+  .radio-label{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:9px;font-size:.85rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;}
+  .radio-label input{display:none;}
+  .radio-label:has(input:checked){background:var(--ink);color:var(--paper);}
+
+  .btn{width:100%;padding:13px;border:2px solid var(--ink);border-radius:var(--radius-sm);font-weight:700;font-size:.9rem;cursor:pointer;margin-bottom:10px;transition:all .1s;font-family:'DM Sans',sans-serif;}
+  .btn-primary{background:var(--lime);color:var(--lime-ink);box-shadow:3px 3px 0 var(--ink);}
+  .btn-primary:active{box-shadow:1px 1px 0 var(--ink);transform:translate(2px,2px);}
+  .btn-secondary{background:var(--card);color:var(--ink);}
+  .btn-secondary:hover{background:var(--paper);}
+  .btn-danger{background:var(--coral-bg);color:var(--coral);}
+  .btn-danger:hover{background:var(--coral);color:#fff;}
+  .btn-small{background:var(--card);border:2px solid var(--ink);border-radius:8px;padding:5px 10px;cursor:pointer;color:var(--ink);font-weight:700;}
+
+  .filter-group{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .filter-group .input-field{flex:1;min-width:120px;}
+
+  .transactions-list{display:flex;flex-direction:column;}
+  .empty-state{text-align:center;color:var(--muted);padding:34px 10px;font-size:.88rem;font-family:'IBM Plex Mono',monospace;}
+  .tx-item{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:12px;padding:13px 2px;border-bottom:1.5px dashed var(--line);}
+  .tx-item:last-child{border-bottom:none;}
+  .tx-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;border:1.5px solid var(--ink);}
+  .tx-icon.income{background:var(--lime);}
+  .tx-icon.expense{background:var(--coral-bg);}
+  .tx-info .desc{font-weight:700;font-size:.88rem;}
+  .tx-info .meta{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted);margin-top:2px;}
+  .tx-amount{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:.88rem;white-space:nowrap;}
+  .tx-amount.income{color:#188a5c;}
+  [data-theme="dark"] .tx-amount.income{color:#4fd897;}
+  .tx-amount.expense{color:var(--coral);}
+  .tx-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px 6px;border-radius:6px;}
+  .tx-del:hover{color:var(--coral);background:var(--coral-bg);}
+
+  .report-container{display:flex;flex-direction:column;gap:22px;}
+  .chart-container h3, .summary-container h3, .monthly-summary h3{margin:0 0 14px;font-size:.95rem;font-weight:700;}
+  .chart-container canvas{max-height:260px;}
+
+  .cat-row{margin-bottom:11px;}
+  .cat-row .top{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:4px;}
+  .cat-row .top .amt{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:.76rem;}
+  .cat-track{height:7px;background:var(--paper);border:1.5px solid var(--ink);border-radius:4px;overflow:hidden;}
+  .cat-fill{height:100%;background:var(--lime);}
+
+  .month-selector{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:14px;font-weight:700;font-size:.9rem;font-family:'IBM Plex Mono',monospace;}
+  .monthly-stats{display:flex;gap:14px;}
+  .monthly-stats .m-item{flex:1;background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:14px;text-align:center;}
+  .monthly-stats .m-item .m-label{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted);margin-bottom:5px;text-transform:uppercase;}
+  .monthly-stats .m-item .m-val{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1rem;}
+
+  /* Roast card */
+  .roast-card{background:var(--ink);border-radius:16px;padding:18px 20px;color:var(--paper);margin-top:2px;}
+  .roast-card .r-title{font-family:'IBM Plex Mono',monospace;font-size:.7rem;text-transform:uppercase;letter-spacing:.6px;opacity:.6;margin-bottom:8px;font-weight:600;}
+  .roast-card .r-text{font-size:.92rem;line-height:1.55;font-weight:500;}
+  .roast-card b{color:var(--lime);}
+
+  /* Goals */
+  .goal-card{background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:16px;margin-bottom:12px;}
+  .goal-card .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .goal-card .top .name{font-weight:700;font-size:.9rem;}
+  .goal-card .top .del-goal{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;}
+  .goal-track{height:8px;background:var(--card);border:1.5px solid var(--ink);border-radius:5px;overflow:hidden;margin-bottom:8px;}
+  .goal-fill{height:100%;background:var(--tabungan);}
+  .goal-info{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--muted);}
+  .goal-info b{color:var(--ink);}
+  .add-goal-btn{width:100%;padding:12px;border:2px dashed var(--ink);background:transparent;border-radius:14px;color:var(--ink);font-weight:700;font-size:.85rem;cursor:pointer;}
+
+  /* Split bill */
+  .split-result{background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:16px;margin-top:16px;}
+  .split-result .row{display:flex;justify-content:space-between;font-size:.88rem;padding:6px 0;font-family:'IBM Plex Mono',monospace;}
+  .split-result .row.total{border-top:1.5px dashed var(--line);margin-top:6px;padding-top:10px;font-weight:700;font-size:1rem;}
+
+  /* Badges */
+  .badge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px;}
+  .badge{background:var(--paper);border:2px solid var(--line);border-radius:14px;padding:14px 8px;text-align:center;opacity:.4;transition:all .2s;}
+  .badge.unlocked{opacity:1;border-color:var(--ink);box-shadow:2px 2px 0 var(--ink);}
+  .badge .b-icon{font-size:1.4rem;margin-bottom:6px;}
+  .badge .b-name{font-family:'IBM Plex Mono',monospace;font-size:.64rem;font-weight:600;color:var(--muted);}
+  .badge.unlocked .b-name{color:var(--ink);}
+
+  .sidebar{display:flex;flex-direction:column;gap:16px;}
+  .sidebar-card{background:var(--card);border:2px solid var(--ink);border-radius:var(--radius);padding:18px;box-shadow:4px 4px 0 var(--ink);}
+  .sidebar-card h3{margin:0 0 14px;font-size:.88rem;font-weight:700;}
+  .stat-item{display:flex;justify-content:space-between;font-size:.83rem;padding:8px 0;border-bottom:1.5px dashed var(--line);}
+  .stat-item:last-child{border-bottom:none;}
+  .stat-item span:last-child{font-family:'IBM Plex Mono',monospace;font-weight:700;}
+
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--paper);padding:12px 22px;border-radius:999px;
+    font-size:.84rem;font-weight:600;opacity:0;transition:all .25s;z-index:95;pointer-events:none;
+    max-width:90%;text-align:center;border:2px solid var(--ink);
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="header">
+    <div class="brand">
+      <div class="mark">Rp</div>
+      <div>
+        <h1>My Money</h1>
+        <div class="sub">Catatan Digital · Gen Z Edition</div>
+      </div>
+    </div>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+  </header>
+
+  <div class="vibe-strip" id="vibeStrip">🔥 <span><b id="streakCount">0</b> transaksi tercatat. Keep it up!</span></div>
+
+  <div class="receipt">
+    <div class="top-row">
+      <span class="label">Total Saldo</span>
+      <button class="eye-toggle" id="eyeToggle">👁</button>
+    </div>
+    <div class="amount mono" id="totalBalance">Rp 0</div>
+    <div class="subrow">
+      <div class="item">
+        <div class="label2">Pemasukan</div>
+        <div class="val income" id="incomeAmount">Rp 0</div>
+      </div>
+      <div class="item">
+        <div class="label2">Pengeluaran</div>
+        <div class="val expense" id="expenseAmount">Rp 0</div>
+      </div>
+    </div>
+  </div>
+  <div class="receipt-tear"></div>
+
+  <div class="accounts" id="accountCards"></div>
+
+  <div class="content-wrapper">
+    <main class="main-section">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="add-transaction">➕ Tambah</button>
+        <button class="tab-btn" data-tab="history">📋 Riwayat</button>
+        <button class="tab-btn" data-tab="report">📊 Laporan</button>
+        <button class="tab-btn" data-tab="goals">🎯 Target</button>
+        <button class="tab-btn" data-tab="split">🧾 Split Bill</button>
+      </div>
+
+      <!-- TAMBAH -->
+      <div class="tab-content active" id="add-transaction">
+        <div class="form-group">
+          <label>Tipe Transaksi</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="type" value="income" checked>💵 Pemasukan</label>
+            <label class="radio-label"><input type="radio" name="type" value="expense">💸 Pengeluaran</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Akun</label>
+          <select id="account" class="input-field">
+            <option value="cash">💵 Cash</option>
+            <option value="atm">💳 ATM / Digital</option>
+            <option value="tabungan">🏦 Tabungan</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="category">Kategori</label>
+          <select id="category" class="input-field"></select>
+        </div>
+        <div class="form-group">
+          <label for="amount">Jumlah (Rp)</label>
+          <input type="number" id="amount" class="input-field mono" placeholder="0" min="0">
+          <div class="quick-amounts" id="quickAmounts"></div>
+        </div>
+        <div class="form-group">
+          <label for="description">Deskripsi</label>
+          <input type="text" id="description" class="input-field" placeholder="Contoh: Boba kekinian">
+        </div>
+        <div class="form-group">
+          <label for="date">Tanggal</label>
+          <input type="date" id="date" class="input-field">
+        </div>
+        <button class="btn btn-primary" id="addBtn">Tambah Transaksi</button>
+      </div>
+
+      <!-- RIWAYAT -->
+      <div class="tab-content" id="history">
+        <div class="filter-group">
+          <input type="search" id="searchInput" class="input-field" placeholder="Cari transaksi...">
+          <select id="filterAccount" class="input-field">
+            <option value="">Semua Akun</option>
+            <option value="cash">Cash</option>
+            <option value="atm">ATM/Digital</option>
+            <option value="tabungan">Tabungan</option>
+          </select>
+          <select id="filterCategory" class="input-field"><option value="">Semua Kategori</option></select>
+        </div>
+        <div class="transactions-list" id="transactionsList"></div>
+      </div>
+
+      <!-- LAPORAN -->
+      <div class="tab-content" id="report">
+        <div class="report-container">
+          <div class="chart-container">
+            <h3>Grafik Pengeluaran</h3>
+            <canvas id="expenseChart"></canvas>
+          </div>
+
+          <div>
+            <h3>Vibe Check Bulanan</h3>
+            <div class="roast-card">
+              <div class="r-title">Insight buat kamu</div>
+              <div class="r-text" id="roastText">Belum ada cukup data buat dianalisis nih. Yuk mulai catat transaksi!</div>
+            </div>
+          </div>
+
+          <div class="summary-container">
+            <h3>Ringkasan Kategori</h3>
+            <div class="category-summary" id="categorySummary">
+              <p class="empty-state">Belum ada data transaksi</p>
+            </div>
+          </div>
+
+          <div class="monthly-summary">
+            <h3>Ringkasan Bulanan</h3>
+            <div class="month-selector">
+              <button class="btn-small" id="prevMonth">◀</button>
+              <span id="currentMonth">—</span>
+              <button class="btn-small" id="nextMonth">▶</button>
+            </div>
+            <div class="monthly-stats" id="monthlyStats">
+              <div class="m-item"><div class="m-label">Pemasukan</div><div class="m-val" id="mIncome">Rp 0</div></div>
+              <div class="m-item"><div class="m-label">Pengeluaran</div><div class="m-val" id="mExpense">Rp 0</div></div>
+            </div>
+          </div>
+
+          <div>
+            <h3>Achievement</h3>
+            <div class="badge-grid" id="badgeGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARGET -->
+      <div class="tab-content" id="goals">
+        <h3 style="margin:0 0 14px;font-size:.95rem;font-weight:700;">Target Tabungan</h3>
+        <div id="goalsList"></div>
+        <button class="add-goal-btn" id="addGoalBtn">+ Buat Target Baru</button>
+      </div>
+
+      <!-- SPLIT BILL -->
+      <div class="tab-content" id="split">
+        <h3 style="margin:0 0 14px;font-size:.95rem;font-weight:700;">🧾 Split Bill</h3>
+        <div class="form-group">
+          <label for="splitTotal">Total Tagihan (Rp)</label>
+          <input type="number" id="splitTotal" class="input-field mono" placeholder="Contoh: 250000">
+        </div>
+        <div class="form-group">
+          <label for="splitPeople">Jumlah Orang</label>
+          <input type="number" id="splitPeople" class="input-field mono" placeholder="Contoh: 4" min="1">
+        </div>
+        <div class="form-group">
+          <label for="splitFee">Biaya Tambahan / Pajak / Ongkir (Rp, opsional)</label>
+          <input type="number" id="splitFee" class="input-field mono" placeholder="0">
+        </div>
+        <button class="btn btn-primary" id="splitBtn">Hitung Split</button>
+        <div class="split-result" id="splitResult" style="display:none;"></div>
+      </div>
+    </main>
+
+    <aside class="sidebar">
+      <div class="sidebar-card">
+        <h3>⚡ Quick Actions</h3>
+        <button class="btn btn-secondary" id="exportBtn">📥 Export Data</button>
+        <button class="btn btn-secondary" id="importBtn">📤 Import Data</button>
+        <button class="btn btn-danger" id="clearBtn">🗑️ Hapus Semua</button>
+      </div>
+      <div class="sidebar-card">
+        <h3>📈 Statistik Hari Ini</h3>
+        <div class="stat-item"><span>Pemasukan</span><span id="todayIncome">Rp 0</span></div>
+        <div class="stat-item"><span>Pengeluaran</span><span id="todayExpense">Rp 0</span></div>
+      </div>
+      <div class="sidebar-card">
+        <h3>🚫 No Spend Streak</h3>
+        <div class="stat-item"><span>Hari tanpa pengeluaran</span><span id="noSpendStreak">0</span></div>
+        <div class="stat-item"><span>Rekor terbaik</span><span id="noSpendBest">0</span></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<input type="file" id="fileInput" style="display:none;" accept=".json">
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function(){
+  const CATS_INCOME = ["Gaji","Bonus","Usaha","Hadiah","Transfer Masuk","Lainnya"];
+  const CATS_EXPENSE = ["Jajan/Boba","Nongkrong","Makan","Transport (Gojek/Grab)","Belanja Online","Skincare/Fashion","Langganan (Netflix/Spotify)","Tagihan","Hiburan","Kesehatan","Pendidikan","Lainnya"];
+  const ACC_LABEL = {cash:"💵 Cash", atm:"💳 ATM/Digital", tabungan:"🏦 Tabungan"};
+  const ACC_NAME = {cash:"Cash", atm:"ATM / Digital", tabungan:"Tabungan"};
+  const QUICK_AMOUNTS = [10000, 20000, 50000, 100000, 200000];
+
+  let transactions = [];
+  let goals = [];
+  let viewMonth = new Date();
+  let chart = null;
+  let balanceHidden = false;
+
+  try{ transactions = JSON.parse(localStorage.getItem("mymoney_tx")) || []; }catch(e){ transactions = []; }
+  try{ goals = JSON.parse(localStorage.getItem("mymoney_goals")) || []; }catch(e){ goals = []; }
+  function saveTx(){ try{ localStorage.setItem("mymoney_tx", JSON.stringify(transactions)); }catch(e){} }
+  function saveGoals(){ try{ localStorage.setItem("mymoney_goals", JSON.stringify(goals)); }catch(e){} }
+
+  const rupiah = n => "Rp " + Math.round(n).toLocaleString('id-ID');
+  const escapeHtml = s => { const d=document.createElement("div"); d.textContent=s; return d.innerHTML; };
+  function showToast(msg){
+    const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"),2400);
+  }
+
+  // Theme
+  const themeToggle = document.getElementById("themeToggle");
+  function applyTheme(t){
+    document.documentElement.setAttribute("data-theme", t);
+    themeToggle.textContent = t === "dark" ? "☀️" : "🌙";
+    localStorage.setItem("mymoney_theme", t);
+  }
+  applyTheme(localStorage.getItem("mymoney_theme") || "light");
+  themeToggle.addEventListener("click", () => {
+    applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+    if(document.getElementById("report").classList.contains("active")) renderChart();
+  });
+
+  // Eye toggle
+  document.getElementById("eyeToggle").addEventListener("click", () => {
+    balanceHidden = !balanceHidden;
+    document.getElementById("eyeToggle").textContent = balanceHidden ? "🙈" : "👁";
+    renderAll();
+  });
+
+  // Tabs
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.tab).classList.add("active");
+      if(btn.dataset.tab === "report") renderChart();
+    });
+  });
+
+  // Form elements
+  const typeRadios = document.querySelectorAll('input[name="type"]');
+  const accountSelect = document.getElementById("account");
+  const categorySelect = document.getElementById("category");
+  const amountInput = document.getElementById("amount");
+  const descInput = document.getElementById("description");
+  const dateInput = document.getElementById("date");
+  const addBtn = document.getElementById("addBtn");
+  const filterCategory = document.getElementById("filterCategory");
+  const filterAccount = document.getElementById("filterAccount");
+  const searchInput = document.getElementById("searchInput");
+  const quickAmounts = document.getElementById("quickAmounts");
+
+  const todayISO = new Date().toISOString().slice(0,10);
+  dateInput.value = todayISO;
+
+  quickAmounts.innerHTML = QUICK_AMOUNTS.map(a=>`<button type="button" class="chip" data-amt="${a}">${a>=1000 ? (a/1000)+"rb" : a}</button>`).join("");
+  quickAmounts.querySelectorAll(".chip").forEach(chip=>{
+    chip.addEventListener("click", () => {
+      amountInput.value = chip.dataset.amt;
+      quickAmounts.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
+      chip.classList.add("active");
+    });
+  });
+  amountInput.addEventListener("input", () => {
+    quickAmounts.querySelectorAll(".chip").forEach(c=>c.classList.toggle("active", c.dataset.amt === amountInput.value));
+  });
+
+  function currentType(){ return document.querySelector('input[name="type"]:checked').value; }
+  function populateCategories(){
+    const list = currentType() === "income" ? CATS_INCOME : CATS_EXPENSE;
+    categorySelect.innerHTML = list.map(c=>`<option value="${c}">${c}</option>`).join("");
+  }
+  typeRadios.forEach(r => r.addEventListener("change", populateCategories));
+  populateCategories();
+
+  function populateFilterCategories(){
+    const all = [...new Set(transactions.map(t=>t.category))];
+    filterCategory.innerHTML = '<option value="">Semua Kategori</option>' + all.map(c=>`<option value="${c}">${c}</option>`).join("");
+  }
+
+  addBtn.addEventListener("click", () => {
+    const type = currentType();
+    const account = accountSelect.value;
+    const category = categorySelect.value;
+    const amount = parseFloat(amountInput.value);
+    const description = descInput.value.trim();
+    const date = dateInput.value || todayISO;
+
+    if(!amount || amount <= 0){ amountInput.focus(); return; }
+    if(!description){ descInput.focus(); return; }
+
+    transactions.unshift({ id: Date.now(), type, account, category, amount, description, date });
+    amountInput.value = ""; descInput.value = ""; dateInput.value = todayISO;
+    quickAmounts.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
+    saveTx(); renderAll();
+    showToast(type === "income" ? "Cuan masuk! 💸✅" : "Tercatat! Tetap hemat ya ✅");
+  });
+
+  window.__delTx = function(id){
+    transactions = transactions.filter(t => t.id !== id);
+    saveTx(); renderAll();
+    showToast("Transaksi dihapus");
+  };
+
+  searchInput.addEventListener("input", renderHistory);
+  filterCategory.addEventListener("change", renderHistory);
+  filterAccount.addEventListener("change", renderHistory);
+
+  function renderHistory(){
+    const q = searchInput.value.toLowerCase();
+    const cat = filterCategory.value;
+    const acc = filterAccount.value;
+    const list = document.getElementById("transactionsList");
+    const filtered = transactions.filter(t=>{
+      if(cat && t.category !== cat) return false;
+      if(acc && t.account !== acc) return false;
+      if(q && !t.description.toLowerCase().includes(q) && !t.category.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    if(filtered.length === 0){
+      list.innerHTML = '<p class="empty-state">Tidak ada transaksi</p>';
+      return;
+    }
+    list.innerHTML = filtered.map(t=>{
+      const dateFmt = new Date(t.date).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+      const sign = t.type === "income" ? "+" : "−";
+      const icon = t.type === "income" ? "↓" : "↑";
+      const accLabel = ACC_LABEL[t.account] || "";
+      return `
+        <div class="tx-item">
+          <div class="tx-icon ${t.type}">${icon}</div>
+          <div class="tx-info">
+            <div class="desc">${escapeHtml(t.description)}</div>
+            <div class="meta">${accLabel} · ${t.category} · ${dateFmt}</div>
+          </div>
+          <div class="tx-amount ${t.type}">${sign} ${rupiah(t.amount)}</div>
+          <button class="tx-del" onclick="window.__delTx(${t.id})">✕</button>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderBalance(){
+    let income=0, expense=0, todayIncome=0, todayExpense=0;
+    const accBalance = {cash:0, atm:0, tabungan:0};
+    transactions.forEach(t=>{
+      if(t.type === "income"){
+        income += t.amount;
+        accBalance[t.account] = (accBalance[t.account]||0) + t.amount;
+        if(t.date === todayISO) todayIncome += t.amount;
+      } else {
+        expense += t.amount;
+        accBalance[t.account] = (accBalance[t.account]||0) - t.amount;
+        if(t.date === todayISO) todayExpense += t.amount;
+      }
+    });
+    document.getElementById("totalBalance").textContent = balanceHidden ? "••••••••" : rupiah(income-expense);
+    document.getElementById("incomeAmount").textContent = balanceHidden ? "••••••" : rupiah(income);
+    document.getElementById("expenseAmount").textContent = balanceHidden ? "••••••" : rupiah(expense);
+    document.getElementById("todayIncome").textContent = rupiah(todayIncome);
+    document.getElementById("todayExpense").textContent = rupiah(todayExpense);
+    document.getElementById("streakCount").textContent = transactions.length;
+
+    document.getElementById("accountCards").innerHTML = Object.keys(ACC_LABEL).map(key=>`
+      <div class="acc-card">
+        <div class="top"><span class="dot ${key}"></span><span class="name">${ACC_NAME[key]}</span></div>
+        <div class="val">${balanceHidden ? "••••••" : rupiah(accBalance[key]||0)}</div>
+      </div>
+    `).join("");
+
+    // No spend streak
+    const daysSet = new Set(transactions.filter(t=>t.type==="expense").map(t=>t.date));
+    let streak = 0;
+    let cursor = new Date();
+    while(true){
+      const iso = cursor.toISOString().slice(0,10);
+      if(daysSet.has(iso)) break;
+      streak++;
+      cursor.setDate(cursor.getDate()-1);
+      if(streak > 365) break;
+    }
+    const finalStreak = daysSet.has(todayISO) ? 0 : streak - (transactions.length ? 0 : streak);
+    document.getElementById("noSpendStreak").textContent = transactions.length ? finalStreak : 0;
+    const best = Math.max(finalStreak, parseInt(localStorage.getItem("mymoney_beststreak")||"0"));
+    localStorage.setItem("mymoney_beststreak", best);
+    document.getElementById("noSpendBest").textContent = best;
+  }
+
+  function renderCategorySummary(){
+    const byCat = {};
+    transactions.filter(t=>t.type==="expense").forEach(t=>{ byCat[t.category] = (byCat[t.category]||0)+t.amount; });
+    const entries = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+    const el = document.getElementById("categorySummary");
+    if(entries.length === 0){ el.innerHTML = '<p class="empty-state">Belum ada data transaksi</p>'; return; }
+    const max = entries[0][1];
+    el.innerHTML = entries.map(([cat,amt])=>{
+      const pct = Math.max(4, Math.round((amt/max)*100));
+      return `<div class="cat-row"><div class="top"><span>${cat}</span><span class="amt">${rupiah(amt)}</span></div><div class="cat-track"><div class="cat-fill" style="width:${pct}%"></div></div></div>`;
+    }).join("");
+  }
+
+  function renderChart(){
+    const byCat = {};
+    transactions.filter(t=>t.type==="expense").forEach(t=>{ byCat[t.category] = (byCat[t.category]||0)+t.amount; });
+    const labels = Object.keys(byCat);
+    const data = Object.values(byCat);
+    const ctx = document.getElementById("expenseChart");
+    if(chart) chart.destroy();
+    if(labels.length === 0) return;
+    const colors = ['#cdea3f','#ff6b5c','#5b8dff','#a06bff','#ffb64d','#4dd0e1','#ff8fb1','#7ed957','#ffd166','#8a8578'];
+    const textColor = document.documentElement.getAttribute("data-theme") === "dark" ? "#f3f1ea" : "#161616";
+    chart = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels, datasets:[{ data, backgroundColor: colors, borderWidth:2, borderColor: textColor }] },
+      options: { plugins:{ legend:{ position:'bottom', labels:{ color:textColor, font:{size:11, family:"'IBM Plex Mono', monospace"} } } } }
+    });
+  }
+
+  function renderMonthly(){
+    const label = viewMonth.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+    document.getElementById("currentMonth").textContent = label;
+    const ym = viewMonth.toISOString().slice(0,7);
+    let inc=0, exp=0;
+    transactions.forEach(t=>{
+      if(t.date.slice(0,7) === ym){
+        if(t.type==="income") inc += t.amount; else exp += t.amount;
+      }
+    });
+    document.getElementById("mIncome").textContent = rupiah(inc);
+    document.getElementById("mExpense").textContent = rupiah(exp);
+  }
+  document.getElementById("prevMonth").addEventListener("click", ()=>{ viewMonth.setMonth(viewMonth.getMonth()-1); renderMonthly(); });
+  document.getElementById("nextMonth").addEventListener("click", ()=>{ viewMonth.setMonth(viewMonth.getMonth()+1); renderMonthly(); });
+
+  function renderRoast(){
+    const el = document.getElementById("roastText");
+    const expenses = transactions.filter(t=>t.type==="expense");
+    if(expenses.length < 3){
+      el.textContent = "Belum ada cukup data buat dianalisis nih. Yuk mulai catat transaksi!";
+      return;
+    }
+    const byCat = {};
+    expenses.forEach(t=>{ byCat[t.category] = (byCat[t.category]||0)+t.amount; });
+    const top = Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+    const totalExp = expenses.reduce((s,t)=>s+t.amount,0);
+    const topPct = Math.round((top[1]/totalExp)*100);
+
+    const jajanCats = ["Jajan/Boba","Nongkrong","Langganan (Netflix/Spotify)"];
+    const jajanTotal = expenses.filter(t=>jajanCats.includes(t.category)).reduce((s,t)=>s+t.amount,0);
+    const jajanPct = Math.round((jajanTotal/totalExp)*100) || 0;
+
+    let msg = `Kategori terbesar kamu bulan ini: <b>${top[0]}</b> (${topPct}% dari total pengeluaran).`;
+    if(jajanPct >= 30){
+      msg += ` Btw, jajan & langganan udah makan ${jajanPct}% dari pengeluaranmu — coba dikurangin dikit, siapa tau bisa nabung lebih 👀`;
+    } else if(topPct >= 50){
+      msg += ` Cukup dominan ya, mungkin worth it buat dipantau lebih ketat bulan depan.`;
+    } else {
+      msg += ` Pengeluaranmu cukup seimbang, nice! 🎉`;
+    }
+    el.innerHTML = msg;
+  }
+
+  function renderBadges(){
+    const totalTx = transactions.length;
+    const daysSet = new Set(transactions.map(t=>t.date));
+    const badges = [
+      { icon:"🌱", name:"Transaksi Pertama", unlocked: totalTx >= 1 },
+      { icon:"🔥", name:"10 Transaksi", unlocked: totalTx >= 10 },
+      { icon:"💪", name:"50 Transaksi", unlocked: totalTx >= 50 },
+      { icon:"🎯", name:"Punya Target", unlocked: goals.length >= 1 },
+      { icon:"🏆", name:"Target Tercapai", unlocked: goals.some(g=>g.saved >= g.target) },
+      { icon:"📅", name:"Rajin 5 Hari", unlocked: daysSet.size >= 5 },
+    ];
+    document.getElementById("badgeGrid").innerHTML = badges.map(b=>`
+      <div class="badge ${b.unlocked ? 'unlocked' : ''}">
+        <div class="b-icon">${b.icon}</div>
+        <div class="b-name">${b.name}</div>
+      </div>
+    `).join("");
+  }
+
+  // Goals
+  document.getElementById("addGoalBtn").addEventListener("click", () => {
+    const name = prompt("Nama target (contoh: Dana Darurat, Liburan):");
+    if(!name) return;
+    const target = parseFloat(prompt("Target jumlah (Rp):"));
+    if(!target || target <= 0) return;
+    goals.unshift({ id: Date.now(), name, target, saved:0 });
+    saveGoals(); renderGoals();
+    showToast("Target baru dibuat 🎯");
+  });
+  window.__addToGoal = function(id){
+    const val = parseFloat(prompt("Tambah berapa ke target ini? (Rp)"));
+    if(!val || val <= 0) return;
+    const g = goals.find(x=>x.id===id);
+    if(g){ g.saved += val; saveGoals(); renderGoals(); showToast("Ditambahkan ke target ✅"); }
+  };
+  window.__delGoal = function(id){
+    goals = goals.filter(g=>g.id!==id);
+    saveGoals(); renderGoals();
+  };
+  function renderGoals(){
+    const el = document.getElementById("goalsList");
+    if(goals.length === 0){ el.innerHTML = '<p class="empty-state">Belum ada target. Buat target tabungan pertamamu!</p>'; return; }
+    el.innerHTML = goals.map(g=>{
+      const pct = Math.min(100, Math.round((g.saved/g.target)*100));
+      return `
+        <div class="goal-card">
+          <div class="top"><span class="name">${escapeHtml(g.name)}</span><button class="del-goal" onclick="window.__delGoal(${g.id})">✕</button></div>
+          <div class="goal-track"><div class="goal-fill" style="width:${pct}%"></div></div>
+          <div class="goal-info"><span><b>${rupiah(g.saved)}</b> / ${rupiah(g.target)}</span><span>${pct}%</span></div>
+          <button class="btn btn-primary" style="margin-top:10px;" onclick="window.__addToGoal(${g.id})">+ Tambah Dana</button>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // Split bill
+  document.getElementById("splitBtn").addEventListener("click", () => {
+    const total = parseFloat(document.getElementById("splitTotal").value) || 0;
+    const people = parseInt(document.getElementById("splitPeople").value) || 1;
+    const fee = parseFloat(document.getElementById("splitFee").value) || 0;
+    const grand = total + fee;
+    const perPerson = grand / people;
+    const el = document.getElementById("splitResult");
+    el.style.display = "block";
+    el.innerHTML = `
+      <div class="row"><span>Total tagihan</span><span>${rupiah(total)}</span></div>
+      <div class="row"><span>Biaya tambahan</span><span>${rupiah(fee)}</span></div>
+      <div class="row"><span>Jumlah orang</span><span>${people} orang</span></div>
+      <div class="row total"><span>Per orang bayar</span><span>${rupiah(perPerson)}</span></div>
+    `;
+  });
+
+  // Export / Import / Clear
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify({transactions, goals}, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "mymoney-data.json"; a.click();
+    URL.revokeObjectURL(url);
+    showToast("Data berhasil di-export 📥");
+  });
+  const fileInput = document.getElementById("fileInput");
+  document.getElementById("importBtn").addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try{
+        const data = JSON.parse(ev.target.result);
+        if(Array.isArray(data)){
+          transactions = data;
+        } else if(data && Array.isArray(data.transactions)){
+          transactions = data.transactions;
+          goals = data.goals || [];
+        }
+        saveTx(); saveGoals(); renderAll();
+        showToast("Data berhasil di-import 📤");
+      }catch(err){ showToast("Gagal membaca file"); }
+    };
+    reader.readAsText(file);
+    fileInput.value = "";
+  });
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    if(confirm("Hapus semua data transaksi & target?")){
+      transactions = []; goals = [];
+      saveTx(); saveGoals(); renderAll();
+      showToast("Semua data dihapus");
+    }
+  });
+
+  function renderAll(){
+    renderBalance();
+    renderHistory();
+    populateFilterCategories();
+    renderCategorySummary();
+    renderMonthly();
+    renderRoast();
+    renderBadges();
+    renderGoals();
+    if(document.getElementById("report").classList.contains("active")) renderChart();
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
